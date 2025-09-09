@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -13,6 +12,9 @@ interface NumeroRifa {
   numero: number;
   status: string;
 }
+
+const VALOR_POR_NUMERO = 20;
+const CHAVE_PIX = '81973477175';
 
 const RifaPublica = () => {
   const [numerosDisponiveis, setNumerosDisponiveis] = useState<NumeroRifa[]>([]);
@@ -26,8 +28,7 @@ const RifaPublica = () => {
 
   useEffect(() => {
     carregarNumerosDisponiveis();
-    
-    // Configurar realtime
+
     const channel = supabase
       .channel('schema-db-changes')
       .on(
@@ -35,7 +36,7 @@ const RifaPublica = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'numeros_rifa'
+          table: 'numeros_rifa',
         },
         () => {
           carregarNumerosDisponiveis();
@@ -58,7 +59,7 @@ const RifaPublica = () => {
 
       if (error) throw error;
       setNumerosDisponiveis(data || []);
-    } catch (error) {
+    } catch {
       toast({
         title: "Erro",
         description: "Erro ao carregar números disponíveis",
@@ -70,10 +71,8 @@ const RifaPublica = () => {
   };
 
   const toggleNumero = (numero: number) => {
-    setNumerosSelecionados(prev => 
-      prev.includes(numero) 
-        ? prev.filter(n => n !== numero)
-        : [...prev, numero]
+    setNumerosSelecionados((prev) =>
+      prev.includes(numero) ? prev.filter((n) => n !== numero) : [...prev, numero]
     );
   };
 
@@ -90,12 +89,11 @@ const RifaPublica = () => {
     setProcessandoPagamento(true);
 
     try {
-      // Primeiro, reservar os números
       for (const numero of numerosSelecionados) {
         const { error } = await supabase
           .from('numeros_rifa')
           .update({
-            status: 'reservado',
+            status: 'aguardando_confirmacao',
             nome_comprador: nomeComprador,
             telefone_comprador: telefoneComprador,
           })
@@ -104,18 +102,14 @@ const RifaPublica = () => {
         if (error) throw error;
       }
 
-      // Gerar código Pix (simulação - em produção usar API real)
-      const valorTotal = numerosSelecionados.length * 10; // R$ 10 por número
-      const pixCode = `00020126580014BR.GOV.BCB.PIX013636cfead8-aa34-4a84-9c96-7d6b0d2d8${numerosSelecionados.join('')}5204000053039865802BR5925Rifa do Bebe Gustavo6009SAO PAULO62070503***6304${Math.random().toString().substr(2, 4)}`;
-      
+      const pixCode = `00020126580014BR.GOV.BCB.PIX01${CHAVE_PIX}5204000053039865802BR5925Rifa do Bebê Gustavo6009SAO PAULO62070503***6304${Math.random().toString().substr(2, 4)}`;
       setCodigoPix(pixCode);
 
       toast({
         title: "Números reservados!",
-        description: `${numerosSelecionados.length} número(s) reservado(s). Total: R$ ${valorTotal.toFixed(2)}`,
+        description: `${numerosSelecionados.length} número(s) reservado(s). Total: R$ ${(numerosSelecionados.length * VALOR_POR_NUMERO).toFixed(2)}`,
       });
-
-    } catch (error) {
+    } catch {
       toast({
         title: "Erro",
         description: "Erro ao processar reserva",
@@ -126,19 +120,84 @@ const RifaPublica = () => {
     }
   };
 
-  const copiarCodigoPix = () => {
-    navigator.clipboard.writeText(codigoPix);
-    toast({
-      title: "Copiado!",
-      description: "Código Pix copiado para a área de transferência",
-    });
+  const copiarCodigoPix = async (texto: string) => {
+    if (!texto) {
+      toast({
+        title: "Erro",
+        description: "Nenhum código Pix disponível para copiar",
+        variant: "destructive",
+      });
+      console.error('Erro: Nenhum código Pix fornecido');
+      return;
+    }
+
+    // Tenta usar a API navigator.clipboard
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(texto);
+        toast({
+          title: "Copiado!",
+          description: "Código Pix copiado para a área de transferência",
+        });
+        console.log('Cópia bem-sucedida usando navigator.clipboard');
+      } catch (err) {
+        console.error('Erro ao copiar com navigator.clipboard:', err);
+        toast({
+          title: "Erro",
+          description: "Falha ao copiar com API moderna. Tentando método alternativo...",
+          variant: "destructive",
+        });
+        await fallbackCopy(texto);
+      }
+    } else {
+      console.log('navigator.clipboard não disponível, usando fallback');
+      await fallbackCopy(texto);
+    }
   };
 
-  const valorTotal = numerosSelecionados.length * 10;
+  const fallbackCopy = async (texto: string) => {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = texto;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      textarea.style.top = '0';
+      textarea.style.left = '0';
+      document.body.appendChild(textarea);
 
-  if (carregando) {
-    return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
-  }
+      // Força o foco e seleção no elemento
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, texto.length);
+
+      const sucesso = document.execCommand('copy');
+      if (sucesso) {
+        toast({
+          title: "Copiado!",
+          description: "Código Pix copiado usando método alternativo",
+        });
+        console.log('Cópia bem-sucedida usando document.execCommand');
+      } else {
+        throw new Error('document.execCommand falhou');
+      }
+    } catch (err) {
+      console.error('Erro no fallback de cópia:', err);
+      toast({
+        title: "Erro",
+        description: "Não foi possível copiar o código Pix. Toque e segure o código para copiar manualmente.",
+        variant: "destructive",
+      });
+    } finally {
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        document.body.removeChild(textarea);
+      }
+    }
+  };
+
+  const valorTotal = numerosSelecionados.length * VALOR_POR_NUMERO;
+
+  if (carregando) return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -157,7 +216,7 @@ const RifaPublica = () => {
               </div>
             </div>
             <p className="text-lg font-semibold text-primary mt-2">
-              R$ 10,00 por número
+              R$ {VALOR_POR_NUMERO},00 por número
             </p>
           </div>
         </div>
@@ -165,13 +224,21 @@ const RifaPublica = () => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-2xl font-semibold">Números Disponíveis</h2>
-            <p className="text-muted-foreground">
-              {numerosDisponiveis.length} números disponíveis
-            </p>
+            <p className="text-muted-foreground">{numerosDisponiveis.length} números disponíveis</p>
           </div>
-          
+
           {numerosSelecionados.length > 0 && (
-            <Dialog open={dialogPagamento} onOpenChange={setDialogPagamento}>
+            <Dialog
+              open={dialogPagamento}
+              onOpenChange={(open) => {
+                setDialogPagamento(open);
+                if (!open) {
+                  setNumerosSelecionados([]);
+                  setCodigoPix('');
+                  carregarNumerosDisponiveis();
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4" />
@@ -182,18 +249,16 @@ const RifaPublica = () => {
                 <DialogHeader>
                   <DialogTitle>Finalizar Compra</DialogTitle>
                 </DialogHeader>
-                
+
                 {!codigoPix ? (
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">
                         Números selecionados: {numerosSelecionados.join(', ')}
                       </p>
-                      <p className="text-lg font-semibold">
-                        Total: R$ {valorTotal.toFixed(2)}
-                      </p>
+                      <p className="text-lg font-semibold">Total: R$ {valorTotal.toFixed(2)}</p>
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="nome">Nome Completo</Label>
                       <Input
@@ -203,7 +268,7 @@ const RifaPublica = () => {
                         placeholder="Digite seu nome"
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="telefone">Telefone/WhatsApp</Label>
                       <Input
@@ -213,9 +278,9 @@ const RifaPublica = () => {
                         placeholder="(11) 99999-9999"
                       />
                     </div>
-                    
-                    <Button 
-                      onClick={gerarPagamentoPix} 
+
+                    <Button
+                      onClick={gerarPagamentoPix}
                       className="w-full"
                       disabled={processandoPagamento}
                     >
@@ -232,36 +297,38 @@ const RifaPublica = () => {
                 ) : (
                   <div className="space-y-4">
                     <div className="text-center">
-                      <h3 className="font-semibold text-green-600 mb-2">
-                        Números Reservados!
-                      </h3>
+                      <h3 className="font-semibold text-green-600 mb-2">Números Reservados!</h3>
                       <p className="text-sm text-muted-foreground">
                         Seus números foram reservados. Efetue o pagamento via Pix:
                       </p>
                     </div>
-                    
+
                     <div className="bg-gray-50 p-3 rounded">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium">Código Pix:</span>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
-                          onClick={copiarCodigoPix}
+                          onClick={() => copiarCodigoPix(codigoPix)}
                         >
                           <Copy className="h-4 w-4 mr-1" />
                           Copiar
                         </Button>
                       </div>
-                      <p className="text-xs break-all bg-white p-2 rounded">
+                      <p
+                        className="text-xs break-all bg-white p-2 rounded"
+                        onClick={() => copiarCodigoPix(codigoPix)}
+                      >
                         {codigoPix}
                       </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Toque e segure o código acima para copiar manualmente, se necessário.
+                      </p>
                     </div>
-                    
+
                     <div className="text-center text-sm text-muted-foreground">
                       <p>Após o pagamento, seus números serão automaticamente confirmados.</p>
-                      <p className="font-semibold text-primary">
-                        Total: R$ {valorTotal.toFixed(2)}
-                      </p>
+                      <p className="font-semibold text-primary">Total: R$ {valorTotal.toFixed(2)}</p>
                     </div>
                   </div>
                 )}
@@ -281,11 +348,9 @@ const RifaPublica = () => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-primary">
-                    R$ {valorTotal.toFixed(2)}
-                  </p>
-                  <Button 
-                    variant="outline" 
+                  <p className="text-lg font-bold text-primary">R$ {valorTotal.toFixed(2)}</p>
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => setNumerosSelecionados([])}
                   >
@@ -301,10 +366,10 @@ const RifaPublica = () => {
           {numerosDisponiveis.map((numero) => (
             <Button
               key={numero.numero}
-              variant={numerosSelecionados.includes(numero.numero) ? "default" : "outline"}
+              variant={numerosSelecionados.includes(numero.numero) ? 'default' : 'outline'}
               className={`aspect-square text-sm font-medium ${
-                numerosSelecionados.includes(numero.numero) 
-                  ? 'bg-primary text-primary-foreground' 
+                numerosSelecionados.includes(numero.numero)
+                  ? 'bg-primary text-primary-foreground'
                   : 'hover:bg-primary/10'
               }`}
               onClick={() => toggleNumero(numero.numero)}
@@ -317,9 +382,7 @@ const RifaPublica = () => {
         {numerosDisponiveis.length === 0 && (
           <div className="text-center py-12">
             <h3 className="text-lg font-semibold mb-2">Todos os números foram reservados!</h3>
-            <p className="text-muted-foreground">
-              Acompanhe o sorteio em nossas redes sociais.
-            </p>
+            <p className="text-muted-foreground">Acompanhe o sorteio em nossas redes sociais.</p>
           </div>
         )}
       </div>
