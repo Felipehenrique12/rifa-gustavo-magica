@@ -54,7 +54,9 @@ const RifaPublica = () => {
       const { data, error } = await supabase
         .from('numeros_rifa')
         .select('numero, status')
-        .eq('status', 'disponivel')
+        /*  .eq('status', 'disponivel') */
+        .is('nome_comprador', null)
+        .is('telefone_comprador', null)
         .order('numero');
 
       if (error) throw error;
@@ -225,7 +227,7 @@ const RifaPublica = () => {
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-lg mb-6">
             <div className="flex items-center justify-center gap-8 flex-wrap">
               <div className="flex items-center gap-2">
-                 {/* Imagem */}
+                {/* Imagem */}
                 <img
                   src="/imagens/lily2.png"
                   alt="Bebê Gustavo"
@@ -287,7 +289,7 @@ const RifaPublica = () => {
                       <p className="text-sm text-muted-foreground mb-2">
                         Números selecionados: {numerosSelecionados.join(', ')}
                       </p>
-                    
+
                       <p className="text-lg font-semibold">
                         Total: <span className="text-red-600 font-bold">R$ {valorTotal.toFixed(2)}</span></p>
 
