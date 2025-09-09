@@ -203,16 +203,16 @@ const RifaPublica = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
         {/* Botão sair */}
-      <div className="flex justify-end mb-4">
-        <Button
-          variant="outline"
-          onClick={() => {
-            window.location.href = "/"; 
-          }}
-        >
-          Sair
-        </Button>
-      </div>
+        <div className="flex justify-end mb-4">
+          <Button
+            variant="outline"
+            onClick={() => {
+              window.location.href = "/";
+            }}
+          >
+            Sair
+          </Button>
+        </div>
         <div className="text-center mb-8">
 
 
@@ -220,7 +220,7 @@ const RifaPublica = () => {
           <h1 className="text-4xl font-bold text-primary mb-2">
             Rifa do Bebê Gustavo
           </h1>
-          
+
           {/* Card de prêmios */}
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-lg mb-6">
             <div className="flex items-center justify-center gap-8 flex-wrap">
@@ -281,11 +281,14 @@ const RifaPublica = () => {
                       <p className="text-sm text-muted-foreground mb-2">
                         Números selecionados: {numerosSelecionados.join(', ')}
                       </p>
-                      <p className="text-lg font-semibold">Total: R$ {valorTotal.toFixed(2)}</p>
+                    
+                      <p className="text-lg font-semibold">
+                        Total: <span className="text-red-600 font-bold">R$ {valorTotal.toFixed(2)}</span></p>
+
                     </div>
 
-                    <div>
-                      <Label htmlFor="nome">Nome Completo</Label>
+                    <div className="mb-4">
+                      <Label htmlFor="nome" className="mb-2 block">Nome Completo</Label>
                       <Input
                         id="nome"
                         value={nomeComprador}
@@ -294,8 +297,8 @@ const RifaPublica = () => {
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="telefone">Telefone/WhatsApp</Label>
+                    <div className="mb-4">
+                      <Label htmlFor="telefone" className="mb-2 block">Telefone/WhatsApp</Label>
                       <Input
                         id="telefone"
                         value={telefoneComprador}
@@ -303,6 +306,7 @@ const RifaPublica = () => {
                         placeholder="(11) 99999-9999"
                       />
                     </div>
+
 
                     <Button
                       onClick={gerarPagamentoPix}

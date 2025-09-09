@@ -34,6 +34,7 @@ const Index = () => {
                 <p className="text-muted-foreground mb-4">
                   Escolha seus números da sorte<br />
                   Pague via Pix instantaneamente<br />
+                  Envie o comprovante de pagamento<br/>
                   Acompanhe o sorteio!
                 </p>
               </CardContent>
