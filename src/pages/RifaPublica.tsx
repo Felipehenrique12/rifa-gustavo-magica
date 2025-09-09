@@ -93,7 +93,7 @@ const RifaPublica = () => {
         const { error } = await supabase
           .from('numeros_rifa')
           .update({
-            status: 'aguardando_confirmacao',
+            status: 'disponivel',
             nome_comprador: nomeComprador,
             telefone_comprador: telefoneComprador,
           })
@@ -203,7 +203,14 @@ const RifaPublica = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-2">Rifa do Bebê Gustavo</h1>
+
+
+          {/* Título */}
+          <h1 className="text-4xl font-bold text-primary mb-2">
+            Rifa do Bebê Gustavo
+          </h1>
+
+          {/* Card de prêmios */}
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-lg mb-6">
             <div className="flex items-center justify-center gap-8 flex-wrap">
               <div className="flex items-center gap-2">
@@ -213,6 +220,12 @@ const RifaPublica = () => {
               <div className="flex items-center gap-2">
                 <Gift className="h-6 w-6 text-primary" />
                 <span className="font-semibold">1 Malbec Tradicional</span>
+                {/* Imagem */}
+                <img
+                  src="/imagens/"
+                  alt="Bebê Gustavo"
+                  className="mb-4 w-32 h-32"
+                />
               </div>
             </div>
             <p className="text-lg font-semibold text-primary mt-2">
@@ -220,6 +233,7 @@ const RifaPublica = () => {
             </p>
           </div>
         </div>
+
 
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -322,12 +336,12 @@ const RifaPublica = () => {
                         {codigoPix}
                       </p>
                       <p className="text-xs text-muted-foreground mt-2">
-                        Toque e segure o código acima para copiar manualmente, se necessário.
+                        Clique no botão para copiar o código, ou copie manualmente, se necessário.
                       </p>
                     </div>
 
                     <div className="text-center text-sm text-muted-foreground">
-                      <p>Após o pagamento, seus números serão automaticamente confirmados.</p>
+                      <p><strong>Após o pagamento, envie o comprovante !</strong></p>
                       <p className="font-semibold text-primary">Total: R$ {valorTotal.toFixed(2)}</p>
                     </div>
                   </div>
@@ -367,11 +381,10 @@ const RifaPublica = () => {
             <Button
               key={numero.numero}
               variant={numerosSelecionados.includes(numero.numero) ? 'default' : 'outline'}
-              className={`aspect-square text-sm font-medium ${
-                numerosSelecionados.includes(numero.numero)
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-primary/10'
-              }`}
+              className={`aspect-square text-sm font-medium ${numerosSelecionados.includes(numero.numero)
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-primary/10'
+                }`}
               onClick={() => toggleNumero(numero.numero)}
             >
               {numero.numero}
