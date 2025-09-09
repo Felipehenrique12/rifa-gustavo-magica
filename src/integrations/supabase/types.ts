@@ -14,7 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      administradores: {
+        Row: {
+          id: number
+          senha: string
+          usuario: string
+        }
+        Insert: {
+          id?: number
+          senha: string
+          usuario: string
+        }
+        Update: {
+          id?: number
+          senha?: string
+          usuario?: string
+        }
+        Relationships: []
+      }
+      numeros_rifa: {
+        Row: {
+          codigo_pix: string | null
+          nome_comprador: string | null
+          numero: number
+          reservado_por: number | null
+          status: string
+          telefone_comprador: string | null
+        }
+        Insert: {
+          codigo_pix?: string | null
+          nome_comprador?: string | null
+          numero: number
+          reservado_por?: number | null
+          status: string
+          telefone_comprador?: string | null
+        }
+        Update: {
+          codigo_pix?: string | null
+          nome_comprador?: string | null
+          numero?: number
+          reservado_por?: number | null
+          status?: string
+          telefone_comprador?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "numeros_rifa_reservado_por_fkey"
+            columns: ["reservado_por"]
+            isOneToOne: false
+            referencedRelation: "administradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

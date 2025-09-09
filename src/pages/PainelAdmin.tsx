@@ -33,7 +33,7 @@ const PainelAdmin = () => {
   const [telefoneComprador, setTelefoneComprador] = useState('');
 
   if (!administrador) {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/login-admin" replace />;
   }
 
   useEffect(() => {
