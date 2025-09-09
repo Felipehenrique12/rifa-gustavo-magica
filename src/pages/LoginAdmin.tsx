@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ const LoginAdmin = () => {
   const [senha, setSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
   const { administrador, login } = useAuth();
+  const navigate = useNavigate();
 
   if (administrador) {
     return <Navigate to="/admin" replace />;
@@ -35,7 +36,10 @@ const LoginAdmin = () => {
           </CardTitle>
           <p className="text-muted-foreground">Acesso Administrativo</p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+
+         
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="usuario">Usuário</Label>
@@ -66,6 +70,14 @@ const LoginAdmin = () => {
             >
               {carregando ? 'Entrando...' : 'Entrar'}
             </Button>
+             {/* Botão Voltar */}
+          <Button
+            variant="outline"
+            className="w-full mb-4"
+            onClick={() => navigate('/')}
+          >
+            Voltar
+          </Button>
           </form>
         </CardContent>
       </Card>

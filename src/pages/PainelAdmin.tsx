@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,7 @@ interface NumeroRifa {
 
 const PainelAdmin = () => {
   const { administrador, logout } = useAuth();
+  const navigate = useNavigate();
   const [numeros, setNumeros] = useState<NumeroRifa[]>([]);
   const [filtroStatus, setFiltroStatus] = useState<string>('todos');
   const [carregando, setCarregando] = useState(true);
@@ -33,12 +34,12 @@ const PainelAdmin = () => {
   const [telefoneComprador, setTelefoneComprador] = useState('');
 
   if (!administrador) {
-    return <Navigate to="/login-admin" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   useEffect(() => {
     carregarNumeros();
-    
+
     // Configurar realtime
     const channel = supabase
       .channel('schema-db-changes')
@@ -119,7 +120,7 @@ const PainelAdmin = () => {
           status: 'disponivel',
           nome_comprador: null,
           telefone_comprador: null,
-          codigo_pix: null,
+  /*         codigo_pix: null, */
           reservado_por: null
         })
         .eq('numero', numero);
@@ -197,7 +198,13 @@ const PainelAdmin = () => {
             <span className="text-sm text-muted-foreground">
               Bem-vindo, {administrador.usuario}
             </span>
-            <Button variant="outline" onClick={logout}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                logout();
+                navigate("/"); // volta para o index
+              }}
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Sair
             </Button>
@@ -266,7 +273,7 @@ const PainelAdmin = () => {
                     <TableCell>{numero.telefone_comprador || '-'}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {numero.status === 'disponivel' && (
+                        {numero.status === 'disponivel' && !(numero.nome_comprador && numero.telefone_comprador) && (
                           <Dialog open={dialogAberto && numeroSelecionado === numero.numero} onOpenChange={setDialogAberto}>
                             <DialogTrigger asChild>
                               <Button 
@@ -307,12 +314,11 @@ const PainelAdmin = () => {
                             </DialogContent>
                           </Dialog>
                         )}
-                        {numero.status === 'reservado' && (
+
+                        {((numero.status === 'reservado') || 
+                          (numero.status === 'disponivel' && numero.nome_comprador && numero.telefone_comprador)) && (
                           <>
-                            <Button 
-                              size="sm" 
-                              onClick={() => marcarComoPago(numero.numero)}
-                            >
+                            <Button size="sm" onClick={() => marcarComoPago(numero.numero)}>
                               <Check className="h-4 w-4 mr-1" />
                               Pago
                             </Button>

@@ -202,6 +202,17 @@ const RifaPublica = () => {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
+        {/* Botão sair */}
+      <div className="flex justify-end mb-4">
+        <Button
+          variant="outline"
+          onClick={() => {
+            window.location.href = "/"; 
+          }}
+        >
+          Sair
+        </Button>
+      </div>
         <div className="text-center mb-8">
 
 
@@ -209,7 +220,7 @@ const RifaPublica = () => {
           <h1 className="text-4xl font-bold text-primary mb-2">
             Rifa do Bebê Gustavo
           </h1>
-
+          
           {/* Card de prêmios */}
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-lg mb-6">
             <div className="flex items-center justify-center gap-8 flex-wrap">

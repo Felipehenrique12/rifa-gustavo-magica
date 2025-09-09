@@ -22,7 +22,7 @@ const Index = () => {
                   1 Lily Eau de Parfum<br />
                   1 Malbec Tradicional
                 </p>
-                <p className="text-2xl font-bold text-primary">R$ 10,00</p>
+                <p className="text-2xl font-bold text-primary">R$ 20,00</p>
                 <p className="text-sm text-muted-foreground">por número</p>
               </CardContent>
             </Card>
