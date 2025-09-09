@@ -225,6 +225,12 @@ const RifaPublica = () => {
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-lg mb-6">
             <div className="flex items-center justify-center gap-8 flex-wrap">
               <div className="flex items-center gap-2">
+                 {/* Imagem */}
+                <img
+                  src="/imagens/lily2.png"
+                  alt="Bebê Gustavo"
+                  className="mb-4 w-32 h-32"
+                />
                 <Gift className="h-6 w-6 text-primary" />
                 <span className="font-semibold">1 Lily Eau de Parfum</span>
               </div>
@@ -233,7 +239,7 @@ const RifaPublica = () => {
                 <span className="font-semibold">1 Malbec Tradicional</span>
                 {/* Imagem */}
                 <img
-                  src="/imagens/"
+                  src="/imagens/malbec2.png"
                   alt="Bebê Gustavo"
                   className="mb-4 w-32 h-32"
                 />
