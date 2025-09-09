@@ -102,7 +102,7 @@ const RifaPublica = () => {
         if (error) throw error;
       }
 
-      const pixCode = `00020126580014BR.GOV.BCB.PIX01${CHAVE_PIX}5204000053039865802BR5925Rifa do Bebê Gustavo6009SAO PAULO62070503***6304${Math.random().toString().substr(2, 4)}`;
+      const pixCode = `00020126360014BR.GOV.BCB.PIX0114+5581973477175520400005303986540520.005802BR5901N6001C62170513RifadoGustavo63048F67`;
       setCodigoPix(pixCode);
 
       toast({
