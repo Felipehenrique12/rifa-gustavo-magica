@@ -216,9 +216,20 @@ const CartelaRifa = () => {
           </div>
 
           {/* Rodapé */}
-          <div className="text-center mt-8 bg-blue-500 text-white p-4 rounded-xl">
+          <div className="text-center mt-8 bg-blue-500 text-white p-6 rounded-xl space-y-4">
             <p className="text-lg font-semibold">💰 Cada número custa R$ 20,00</p>
-            <p className="text-sm mt-2">📱 Entre em contato para adquirir seus números!</p>
+            
+            <div className="bg-white/20 rounded-lg p-4 space-y-2">
+              <p className="text-lg font-bold">📱 DADOS PARA PAGAMENTO:</p>
+              <p className="text-base"><strong>Chave PIX:</strong> 81 9.7347-7175</p>
+              <p className="text-base"><strong>Nome:</strong> Felipe Henrique</p>
+              <p className="text-base"><strong>Banco:</strong> Neon</p>
+            </div>
+            
+            <div className="bg-yellow-500 text-blue-900 p-4 rounded-lg font-bold">
+              <p className="text-lg">🎲 Sorteio acontecerá no dia 11/10</p>
+              <p className="text-base">pela Loteria Federal</p>
+            </div>
           </div>
         </div>
       </DialogContent>
