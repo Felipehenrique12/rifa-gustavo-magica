@@ -81,7 +81,7 @@ const PainelAdmin = () => {
     }
   };
 
-  const reservarNumero = async () => {
+  /* const reservarNumero = async () => {
     try {
       const { error } = await supabase
         .from('numeros_rifa')
@@ -110,7 +110,59 @@ const PainelAdmin = () => {
         variant: "destructive",
       });
     }
-  };
+  }; */const reservarNumero = async () => {
+  // Remove todos os caracteres que não são números
+  const telefoneNumeros = telefoneComprador.replace(/\D/g, '');
+
+  // Validações
+  if (!nomeComprador.trim()) {
+    toast({
+      title: "Erro",
+      description: "O nome do comprador não pode estar vazio",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  if (telefoneNumeros.length !== 11) {
+    toast({
+      title: "Erro",
+      description: "O telefone deve ter exatamente 11 dígitos",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('numeros_rifa')
+      .update({
+        status: 'reservado',
+        nome_comprador: nomeComprador,
+        telefone_comprador: telefoneComprador,
+        reservado_por: administrador.id
+      })
+      .eq('numero', numeroSelecionado);
+
+    if (error) throw error;
+
+    toast({
+      title: "Sucesso",
+      description: "Número reservado com sucesso",
+    });
+
+    setDialogAberto(false);
+    setNomeComprador('');
+    setTelefoneComprador('');
+  } catch (error) {
+    toast({
+      title: "Erro",
+      description: "Erro ao reservar número",
+      variant: "destructive",
+    });
+  }
+};
+
 
   const liberarNumero = async (numero: number) => {
     try {
@@ -307,8 +359,8 @@ const PainelAdmin = () => {
                                     placeholder="Digite o telefone"
                                   />
                                 </div> */}
-                                <div>
-                                  <Label htmlFor="telefone" className="mb-2 block">Telefone/WhastsApp</Label>
+                                <div className="mb-4">
+                                  <Label htmlFor="telefone" className="mb-2 block">Telefone/WhatsApp</Label>
                                   <Input
                                     id="telefone"
                                     value={telefoneComprador}
@@ -332,7 +384,11 @@ const PainelAdmin = () => {
                                       setTelefoneComprador(valor);
                                     }}
                                   />
+                                  {telefoneComprador.replace(/\D/g, '').length !== 11 && telefoneComprador.length > 0 && (
+                                    <p className="text-red-600 text-sm mt-1">O telefone deve ter exatamente 11 dígitos.</p>
+                                  )}
                                 </div>
+
 
                                 <Button onClick={reservarNumero} className="w-full">
                                   Confirmar Reserva

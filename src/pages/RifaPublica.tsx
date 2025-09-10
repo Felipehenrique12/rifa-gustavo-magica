@@ -127,10 +127,10 @@ const RifaPublica = () => {
   };
 
   const gerarPagamentoPix = async () => {
-    if (numerosSelecionados.length === 0 || !nomeComprador || !telefoneComprador) {
+    if (numerosSelecionados.length === 0 || !nomeComprador || !telefoneComprador || telefoneComprador.length !== 15 ) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos e selecione pelo menos um número",
+        description: "Preencha todos os campos !",
         variant: "destructive",
       });
       return;
@@ -274,7 +274,11 @@ const RifaPublica = () => {
                           setTelefoneComprador(valor);
                         }}
                       />
+                      {telefoneComprador.replace(/\D/g, '').length !== 11 && telefoneComprador.length > 0 && (
+                        <p className="text-red-600 text-sm mt-1">O telefone deve ter exatamente 11 dígitos.</p>
+                      )}
                     </div>
+
 
 
                     <Button onClick={gerarPagamentoPix} className="w-full" disabled={processandoPagamento}>
