@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { ShoppingCart, Gift, Zap, Copy } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface NumeroRifa {
   numero: number;
@@ -14,8 +15,61 @@ interface NumeroRifa {
 }
 
 const VALOR_POR_NUMERO = 20;
-const CHAVE_PIX = '81973477175';
 
+// ---------- FUNÇÕES PIX ----------
+function tlv(tag: string, value: string) {
+  const length = value.length.toString().padStart(2, '0');
+  return `${tag}${length}${value}`;
+}
+
+function calculateCRC16(data: string) {
+  let crc = 0xffff;
+  const poly = 0x1021;
+  const bytes = new TextEncoder().encode(data);
+  for (let byte of bytes) {
+    crc ^= byte << 8;
+    for (let i = 0; i < 8; i++) {
+      if (crc & 0x8000) {
+        crc = (crc << 1) ^ poly;
+      } else {
+        crc <<= 1;
+      }
+      crc &= 0xffff;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function gerarPixCopiaCola(valorTotal: number) {
+  const pixKey = '+5581973477175';       // chave fixa
+  const name = 'Felipe Henrique';        // nome fixo
+  const city = 'Recife';                 // cidade fixa
+  const description = '';                 // descrição (opcional)
+
+  let payload = tlv('00', '01');
+
+  const mai =
+    tlv('00', 'BR.GOV.BCB.PIX') +
+    tlv('01', pixKey) +
+    (description ? tlv('02', description) : '');
+
+  payload += tlv('26', mai);
+  payload += tlv('52', '0000'); // Merchant Category Code
+  payload += tlv('53', '986');  // Moeda BRL
+  payload += tlv('54', valorTotal.toFixed(2)); // valor variável
+  payload += tlv('58', 'BR');   // País
+  payload += tlv('59', name);
+  payload += tlv('60', city);
+
+  const addData = tlv('05', '***'); // TXID fixo
+  payload += tlv('62', addData);
+
+  const tempPayload = payload + '6304';
+  const crc = calculateCRC16(tempPayload);
+  return payload + '6304' + crc;
+}
+
+// ---------- COMPONENTE ----------
 const RifaPublica = () => {
   const [numerosDisponiveis, setNumerosDisponiveis] = useState<NumeroRifa[]>([]);
   const [numerosSelecionados, setNumerosSelecionados] = useState<number[]>([]);
@@ -23,8 +77,11 @@ const RifaPublica = () => {
   const [dialogPagamento, setDialogPagamento] = useState(false);
   const [nomeComprador, setNomeComprador] = useState('');
   const [telefoneComprador, setTelefoneComprador] = useState('');
-  const [codigoPix, setCodigoPix] = useState('');
   const [processandoPagamento, setProcessandoPagamento] = useState(false);
+  const [pixGerado, setPixGerado] = useState(false);
+
+  const valorTotal = numerosSelecionados.length * VALOR_POR_NUMERO;
+  const pixCode = useMemo(() => gerarPixCopiaCola(valorTotal), [valorTotal]);
 
   useEffect(() => {
     carregarNumerosDisponiveis();
@@ -33,20 +90,12 @@ const RifaPublica = () => {
       .channel('schema-db-changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'numeros_rifa',
-        },
-        () => {
-          carregarNumerosDisponiveis();
-        }
+        { event: '*', schema: 'public', table: 'numeros_rifa' },
+        () => carregarNumerosDisponiveis()
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, []);
 
   const carregarNumerosDisponiveis = async () => {
@@ -54,7 +103,6 @@ const RifaPublica = () => {
       const { data, error } = await supabase
         .from('numeros_rifa')
         .select('numero, status')
-        /*  .eq('status', 'disponivel') */
         .is('nome_comprador', null)
         .is('telefone_comprador', null)
         .order('numero');
@@ -73,8 +121,8 @@ const RifaPublica = () => {
   };
 
   const toggleNumero = (numero: number) => {
-    setNumerosSelecionados((prev) =>
-      prev.includes(numero) ? prev.filter((n) => n !== numero) : [...prev, numero]
+    setNumerosSelecionados(prev =>
+      prev.includes(numero) ? prev.filter(n => n !== numero) : [...prev, numero]
     );
   };
 
@@ -95,7 +143,7 @@ const RifaPublica = () => {
         const { error } = await supabase
           .from('numeros_rifa')
           .update({
-            status: 'disponivel',
+            status: 'reservado',
             nome_comprador: nomeComprador,
             telefone_comprador: telefoneComprador,
           })
@@ -104,16 +152,12 @@ const RifaPublica = () => {
         if (error) throw error;
       }
 
-      // const pixCode = `00020126360014BR.GOV.BCB.PIX0114+5581973477175520400005303986540520.005802BR5901N6001C62170513RifadoGustavo63048F67`;
-      const valorPix = Math.round(valorTotal * 100); // Valor em centavos
-      const pixCode = `00020126360014BR.GOV.BCB.PIX0114+55819734771755204000053039865405{valorPix}5802BR5901N6001C62170513RifadoGustavo63048F67`;
-
-      setCodigoPix(pixCode);
-
       toast({
-        title: "Números reservados!",
-        description: `${numerosSelecionados.length} número(s) reservado(s). Total: R$ ${(numerosSelecionados.length * VALOR_POR_NUMERO).toFixed(2)}`,
+        title: "Números Reservados!",
+        description: `${numerosSelecionados.length} número(s) reservado(s). Total: R$ ${valorTotal.toFixed(2)}`,
       });
+
+      setPixGerado(true);
     } catch {
       toast({
         title: "Erro",
@@ -125,82 +169,15 @@ const RifaPublica = () => {
     }
   };
 
-  const copiarCodigoPix = async (texto: string) => {
-    if (!texto) {
-      toast({
-        title: "Erro",
-        description: "Nenhum código Pix disponível para copiar",
-        variant: "destructive",
-      });
-      console.error('Erro: Nenhum código Pix fornecido');
-      return;
-    }
-
-    // Tenta usar a API navigator.clipboard
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(texto);
-        toast({
-          title: "Copiado!",
-          description: "Código Pix copiado para a área de transferência",
-        });
-        console.log('Cópia bem-sucedida usando navigator.clipboard');
-      } catch (err) {
-        console.error('Erro ao copiar com navigator.clipboard:', err);
-        toast({
-          title: "Erro",
-          description: "Falha ao copiar com API moderna. Tentando método alternativo...",
-          variant: "destructive",
-        });
-        await fallbackCopy(texto);
-      }
-    } else {
-      console.log('navigator.clipboard não disponível, usando fallback');
-      await fallbackCopy(texto);
-    }
-  };
-
-  const fallbackCopy = async (texto: string) => {
+  const copiarCodigoPix = async () => {
+    if (!pixCode) return;
     try {
-      const textarea = document.createElement('textarea');
-      textarea.value = texto;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      textarea.style.top = '0';
-      textarea.style.left = '0';
-      document.body.appendChild(textarea);
-
-      // Força o foco e seleção no elemento
-      textarea.focus();
-      textarea.select();
-      textarea.setSelectionRange(0, texto.length);
-
-      const sucesso = document.execCommand('copy');
-      if (sucesso) {
-        toast({
-          title: "Copiado!",
-          description: "Código Pix copiado usando método alternativo",
-        });
-        console.log('Cópia bem-sucedida usando document.execCommand');
-      } else {
-        throw new Error('document.execCommand falhou');
-      }
-    } catch (err) {
-      console.error('Erro no fallback de cópia:', err);
-      toast({
-        title: "Erro",
-        description: "Não foi possível copiar o código Pix. Toque e segure o código para copiar manualmente.",
-        variant: "destructive",
-      });
-    } finally {
-      const textarea = document.querySelector('textarea');
-      if (textarea) {
-        document.body.removeChild(textarea);
-      }
+      await navigator.clipboard.writeText(pixCode);
+      toast({ title: "Código copiado!", description: "Cole no app do seu banco para pagar." });
+    } catch {
+      toast({ title: "Erro", description: "Não foi possível copiar o código.", variant: "destructive" });
     }
   };
-
-  const valorTotal = numerosSelecionados.length * VALOR_POR_NUMERO;
 
   if (carregando) return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
 
@@ -209,54 +186,30 @@ const RifaPublica = () => {
       <div className="max-w-6xl mx-auto">
         {/* Botão sair */}
         <div className="flex justify-end mb-4">
-          <Button
-            variant="outline"
-            onClick={() => {
-              window.location.href = "/";
-            }}
-          >
-            Sair
-          </Button>
+          <Button variant="outline" onClick={() => window.location.href = "/"}>Sair</Button>
         </div>
-        <div className="text-center mb-8">
 
+        {/* Título */}
+        <h1 className="text-4xl font-bold text-primary mb-2 text-center">Rifa do Bebê Gustavo</h1>
 
-          {/* Título */}
-          <h1 className="text-4xl font-bold text-primary mb-2">
-            Rifa do Bebê Gustavo
-          </h1>
-
-          {/* Card de prêmios */}
-          <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-lg mb-6">
-            <div className="flex items-center justify-center gap-8 flex-wrap">
-              <div className="flex items-center gap-2">
-                {/* Imagem */}
-                <img
-                  src="/imagens/lily2.png"
-                  alt="Bebê Gustavo"
-                  className="mb-4 w-32 h-32"
-                />
-                <Gift className="h-6 w-6 text-primary" />
-                <span className="font-semibold">1 Lily Eau de Parfum</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Gift className="h-6 w-6 text-primary" />
-                <span className="font-semibold">1 Malbec Tradicional</span>
-                {/* Imagem */}
-                <img
-                  src="/imagens/malbec2.png"
-                  alt="Bebê Gustavo"
-                  className="mb-4 w-32 h-32"
-                />
-              </div>
+        {/* Card de prêmios */}
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-lg mb-6">
+          <div className="flex items-center justify-center gap-8 flex-wrap">
+            <div className="flex items-center gap-2">
+              <img src="/imagens/lily2.png" alt="Bebê Gustavo" className="mb-4 w-32 h-32"/>
+              <Gift className="h-6 w-6 text-primary"/>
+              <span className="font-semibold">1 Lily Eau de Parfum</span>
             </div>
-            <p className="text-lg font-semibold text-primary mt-2">
-              R$ {VALOR_POR_NUMERO},00 por número
-            </p>
+            <div className="flex items-center gap-2">
+              <Gift className="h-6 w-6 text-primary"/>
+              <span className="font-semibold">1 Malbec Tradicional</span>
+              <img src="/imagens/malbec2.png" alt="Bebê Gustavo" className="mb-4 w-32 h-32"/>
+            </div>
           </div>
+          <p className="text-lg font-semibold text-primary mt-2">R$ {VALOR_POR_NUMERO},00 por número</p>
         </div>
 
-
+        {/* Números disponíveis */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-2xl font-semibold">Números Disponíveis</h2>
@@ -264,21 +217,13 @@ const RifaPublica = () => {
           </div>
 
           {numerosSelecionados.length > 0 && (
-            <Dialog
-              open={dialogPagamento}
-              onOpenChange={(open) => {
-                setDialogPagamento(open);
-                if (!open) {
-                  setNumerosSelecionados([]);
-                  setCodigoPix('');
-                  carregarNumerosDisponiveis();
-                }
-              }}
-            >
+            <Dialog open={dialogPagamento} onOpenChange={(open) => {
+              setDialogPagamento(open);
+              if (!open) setPixGerado(false); // resetar pix ao fechar
+            }}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4" />
-                  Finalizar Compra ({numerosSelecionados.length})
+                  <ShoppingCart className="h-4 w-4"/> Finalizar Compra ({numerosSelecionados.length})
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
@@ -286,88 +231,56 @@ const RifaPublica = () => {
                   <DialogTitle>Finalizar Compra</DialogTitle>
                 </DialogHeader>
 
-                {!codigoPix ? (
+                {!pixGerado ? (
                   <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Números selecionados: {numerosSelecionados.join(', ')}
-                      </p>
-
-                      <p className="text-lg font-semibold">
-                        Total: <span className="text-red-600 font-bold">R$ {valorTotal.toFixed(2)}</span></p>
-
-                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Números selecionados: {numerosSelecionados.join(', ')}
+                    </p>
+                    <p className="text-lg font-semibold">
+                      Total: <span className="text-red-600 font-bold">R$ {valorTotal.toFixed(2)}</span>
+                    </p>
 
                     <div className="mb-4">
                       <Label htmlFor="nome" className="mb-2 block">Nome Completo</Label>
-                      <Input
-                        id="nome"
-                        value={nomeComprador}
-                        onChange={(e) => setNomeComprador(e.target.value)}
-                        placeholder="Digite seu nome"
-                      />
+                      <Input id="nome" value={nomeComprador} onChange={e => setNomeComprador(e.target.value)} placeholder="Digite seu nome"/>
                     </div>
 
                     <div className="mb-4">
                       <Label htmlFor="telefone" className="mb-2 block">Telefone/WhatsApp</Label>
-                      <Input
-                        id="telefone"
-                        value={telefoneComprador}
-                        onChange={(e) => setTelefoneComprador(e.target.value)}
-                        placeholder="(11) 99999-9999"
-                      />
+                      <Input id="telefone" value={telefoneComprador} onChange={e => setTelefoneComprador(e.target.value)} placeholder="(11) 99999-9999"/>
                     </div>
 
-
-                    <Button
-                      onClick={gerarPagamentoPix}
-                      className="w-full"
-                      disabled={processandoPagamento}
-                    >
-                      {processandoPagamento ? (
-                        'Processando...'
-                      ) : (
-                        <>
-                          <Zap className="h-4 w-4 mr-2" />
-                          Gerar Pix
-                        </>
-                      )}
+                    <Button onClick={gerarPagamentoPix} className="w-full" disabled={processandoPagamento}>
+                      {processandoPagamento ? 'Processando...' : <><Zap className="h-4 w-4 mr-2"/> Gerar Pix</>}
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="text-center">
                       <h3 className="font-semibold text-green-600 mb-2">Números Reservados!</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Seus números foram reservados. Efetue o pagamento via Pix:
-                      </p>
+                      <p className="text-sm text-muted-foreground">Seus números foram reservados. Efetue o pagamento via Pix:</p>
                     </div>
 
                     <div className="bg-gray-50 p-3 rounded">
+                    <p className="text-xs text-muted-foreground mt-2">
+                        Clique no botão para copiar o código, ou copie manualmente,<br/> ou leia o QR Code se necessário.
+                      </p>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium">Código Pix:</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copiarCodigoPix(codigoPix)}
-                        >
-                          <Copy className="h-4 w-4 mr-1" />
-                          Copiar
+                        <Button variant="outline" size="sm" onClick={copiarCodigoPix}>
+                          <Copy className="h-4 w-4 mr-1"/> Copiar
                         </Button>
                       </div>
-                      <p
-                        className="text-xs break-all bg-white p-2 rounded"
-                        onClick={() => copiarCodigoPix(codigoPix)}
-                      >
-                        {codigoPix}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Clique no botão para copiar o código, ou copie manualmente, se necessário.
-                      </p>
+                      <p className="text-xs break-all bg-white p-2 rounded">{pixCode}</p>
+                      
                     </div>
 
-                    <div className="text-center text-sm text-muted-foreground">
-                      <p><strong>Após o pagamento, envie o comprovante !</strong></p>
+                    <div className="flex flex-col items-center gap-2 mt-4"> 
+                      <QRCodeSVG value={pixCode} size={200}/>
+                      <p className="text-sm text-muted-foreground">Valor: R$ {valorTotal.toFixed(2)}</p>
+                      <p className="text-center text-sm text-muted-foreground mt-2">
+                        <strong>Após o pagamento, envie o comprovante!</strong>
+                      </p>
                       <p className="font-semibold text-primary">Total: R$ {valorTotal.toFixed(2)}</p>
                     </div>
                   </div>
@@ -377,6 +290,7 @@ const RifaPublica = () => {
           )}
         </div>
 
+        {/* Números selecionados */}
         {numerosSelecionados.length > 0 && (
           <Card className="mb-6">
             <CardContent className="p-4">
@@ -389,28 +303,20 @@ const RifaPublica = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-primary">R$ {valorTotal.toFixed(2)}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setNumerosSelecionados([])}
-                  >
-                    Limpar Seleção
-                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setNumerosSelecionados([])}>Limpar Seleção</Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
+        {/* Grid de números */}
         <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-          {numerosDisponiveis.map((numero) => (
+          {numerosDisponiveis.map(numero => (
             <Button
               key={numero.numero}
               variant={numerosSelecionados.includes(numero.numero) ? 'default' : 'outline'}
-              className={`aspect-square text-sm font-medium ${numerosSelecionados.includes(numero.numero)
-                ? 'bg-primary text-primary-foreground'
-                : 'hover:bg-primary/10'
-                }`}
+              className={`aspect-square text-sm font-medium ${numerosSelecionados.includes(numero.numero) ? 'bg-primary text-primary-foreground' : 'hover:bg-primary/10'}`}
               onClick={() => toggleNumero(numero.numero)}
             >
               {numero.numero}
@@ -418,15 +324,10 @@ const RifaPublica = () => {
           ))}
         </div>
 
-        {numerosDisponiveis.length === 0 && (
-          <div className="text-center py-12">
-            <h3 className="text-lg font-semibold mb-2">Todos os números foram reservados!</h3>
-            <p className="text-muted-foreground">Acompanhe o sorteio em nossas redes sociais.</p>
-          </div>
-        )}
       </div>
     </div>
   );
 };
 
 export default RifaPublica;
+  
