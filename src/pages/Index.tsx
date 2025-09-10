@@ -52,7 +52,7 @@ const Index = () => {
             
             <CartelaRifa />
             
-            <Link to="/login-admin">
+            <Link to="/admin/login">
               <Button variant="outline" size="lg" className="text-lg px-8">
                 <Users className="h-5 w-5 mr-2" />
                 Acesso Admin
