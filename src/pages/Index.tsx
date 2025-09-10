@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Gift, Users, Zap } from 'lucide-react';
+import CartelaRifa from '@/components/CartelaRifa';
 
 const Index = () => {
   return (
@@ -49,7 +50,9 @@ const Index = () => {
               </Button>
             </Link>
             
-            <Link to="/admin/login">
+            <CartelaRifa />
+            
+            <Link to="/login-admin">
               <Button variant="outline" size="lg" className="text-lg px-8">
                 <Users className="h-5 w-5 mr-2" />
                 Acesso Admin

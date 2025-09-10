@@ -95,7 +95,9 @@ const RifaPublica = () => {
       )
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const carregarNumerosDisponiveis = async () => {
