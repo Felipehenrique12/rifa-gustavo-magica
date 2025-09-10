@@ -196,14 +196,14 @@ const RifaPublica = () => {
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-lg mb-6">
           <div className="flex items-center justify-center gap-8 flex-wrap">
             <div className="flex items-center gap-2">
-              <img src="/imagens/lily2.png" alt="Bebê Gustavo" className="mb-4 w-32 h-32"/>
-              <Gift className="h-6 w-6 text-primary"/>
+              <img src="/imagens/lily2.png" alt="Bebê Gustavo" className="mb-4 w-32 h-32" />
+              <Gift className="h-6 w-6 text-primary" />
               <span className="font-semibold">1 Lily Eau de Parfum</span>
             </div>
             <div className="flex items-center gap-2">
-              <Gift className="h-6 w-6 text-primary"/>
+              <Gift className="h-6 w-6 text-primary" />
               <span className="font-semibold">1 Malbec Tradicional</span>
-              <img src="/imagens/malbec2.png" alt="Bebê Gustavo" className="mb-4 w-32 h-32"/>
+              <img src="/imagens/malbec2.png" alt="Bebê Gustavo" className="mb-4 w-32 h-32" />
             </div>
           </div>
           <p className="text-lg font-semibold text-primary mt-2">R$ {VALOR_POR_NUMERO},00 por número</p>
@@ -223,7 +223,7 @@ const RifaPublica = () => {
             }}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4"/> Finalizar Compra ({numerosSelecionados.length})
+                  <ShoppingCart className="h-4 w-4" /> Finalizar Compra ({numerosSelecionados.length})
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
@@ -242,16 +242,43 @@ const RifaPublica = () => {
 
                     <div className="mb-4">
                       <Label htmlFor="nome" className="mb-2 block">Nome Completo</Label>
-                      <Input id="nome" value={nomeComprador} onChange={e => setNomeComprador(e.target.value)} placeholder="Digite seu nome"/>
+                      <Input id="nome" value={nomeComprador} onChange={e => setNomeComprador(e.target.value)} placeholder="Digite seu nome" />
                     </div>
 
-                    <div className="mb-4">
+                    {/* <div className="mb-4">
                       <Label htmlFor="telefone" className="mb-2 block">Telefone/WhatsApp</Label>
                       <Input id="telefone" value={telefoneComprador} onChange={e => setTelefoneComprador(e.target.value)} placeholder="(11) 99999-9999"/>
+                    </div> */}
+                    <div className="mb-4">
+                      <Label htmlFor="telefone" className="mb-2 block">Telefone/WhatsApp</Label>
+                      <Input
+                        id="telefone"
+                        value={telefoneComprador}
+                        placeholder="(11) 99999-9999"
+                        onChange={e => {
+                          // Pega apenas números
+                          let valor = e.target.value.replace(/\D/g, '');
+
+                          // Limita a 11 dígitos
+                          if (valor.length > 11) valor = valor.slice(0, 11);
+
+                          // Aplica máscara: (XX) XXXXX-XXXX
+                          if (valor.length > 5) {
+                            valor = `(${valor.slice(0, 2)}) ${valor.slice(2, 7)}-${valor.slice(7)}`;
+                          } else if (valor.length > 2) {
+                            valor = `(${valor.slice(0, 2)}) ${valor.slice(2)}`;
+                          } else if (valor.length > 0) {
+                            valor = `(${valor}`;
+                          }
+
+                          setTelefoneComprador(valor);
+                        }}
+                      />
                     </div>
 
+
                     <Button onClick={gerarPagamentoPix} className="w-full" disabled={processandoPagamento}>
-                      {processandoPagamento ? 'Processando...' : <><Zap className="h-4 w-4 mr-2"/> Gerar Pix</>}
+                      {processandoPagamento ? 'Processando...' : <><Zap className="h-4 w-4 mr-2" /> Gerar Pix</>}
                     </Button>
                   </div>
                 ) : (
@@ -262,21 +289,21 @@ const RifaPublica = () => {
                     </div>
 
                     <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-xs text-muted-foreground mt-2">
-                        Clique no botão para copiar o código, ou copie manualmente,<br/> ou leia o QR Code se necessário.
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Clique no botão para copiar o código, ou copie manualmente,<br /> ou leia o QR Code se necessário.
                       </p>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium">Código Pix:</span>
                         <Button variant="outline" size="sm" onClick={copiarCodigoPix}>
-                          <Copy className="h-4 w-4 mr-1"/> Copiar
+                          <Copy className="h-4 w-4 mr-1" /> Copiar
                         </Button>
                       </div>
                       <p className="text-xs break-all bg-white p-2 rounded">{pixCode}</p>
-                      
+
                     </div>
 
-                    <div className="flex flex-col items-center gap-2 mt-4"> 
-                      <QRCodeSVG value={pixCode} size={200}/>
+                    <div className="flex flex-col items-center gap-2 mt-4">
+                      <QRCodeSVG value={pixCode} size={200} />
                       <p className="text-sm text-muted-foreground">Valor: R$ {valorTotal.toFixed(2)}</p>
                       <p className="text-center text-sm text-muted-foreground mt-2">
                         <strong>Após o pagamento, envie o comprovante!</strong>
@@ -330,4 +357,3 @@ const RifaPublica = () => {
 };
 
 export default RifaPublica;
-  

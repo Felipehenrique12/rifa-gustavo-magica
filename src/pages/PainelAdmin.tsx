@@ -120,7 +120,7 @@ const PainelAdmin = () => {
           status: 'disponivel',
           nome_comprador: null,
           telefone_comprador: null,
-  /*         codigo_pix: null, */
+          /*         codigo_pix: null, */
           reservado_por: null
         })
         .eq('numero', numero);
@@ -256,7 +256,7 @@ const PainelAdmin = () => {
                   <TableHead>Número</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
+                  <TableHead>Telefone/WhatsApp</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -276,8 +276,8 @@ const PainelAdmin = () => {
                         {numero.status === 'disponivel' && !(numero.nome_comprador && numero.telefone_comprador) && (
                           <Dialog open={dialogAberto && numeroSelecionado === numero.numero} onOpenChange={setDialogAberto}>
                             <DialogTrigger asChild>
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 onClick={() => setNumeroSelecionado(numero.numero)}
                               >
                                 <Plus className="h-4 w-4 mr-1" />
@@ -290,7 +290,7 @@ const PainelAdmin = () => {
                               </DialogHeader>
                               <div className="space-y-4">
                                 <div>
-                                  <Label htmlFor="nome">Nome do Comprador</Label>
+                                  <Label htmlFor="nome" className="mb-2 block">Nome do Comprador</Label>
                                   <Input
                                     id="nome"
                                     value={nomeComprador}
@@ -298,15 +298,42 @@ const PainelAdmin = () => {
                                     placeholder="Digite o nome"
                                   />
                                 </div>
-                                <div>
-                                  <Label htmlFor="telefone">Telefone</Label>
+                                {/*  <div>
+                                  <Label htmlFor="telefone" className="mb-2 block">Telefone</Label>
                                   <Input
                                     id="telefone"
                                     value={telefoneComprador}
                                     onChange={(e) => setTelefoneComprador(e.target.value)}
                                     placeholder="Digite o telefone"
                                   />
+                                </div> */}
+                                <div>
+                                  <Label htmlFor="telefone" className="mb-2 block">Telefone/WhastsApp</Label>
+                                  <Input
+                                    id="telefone"
+                                    value={telefoneComprador}
+                                    placeholder="Digite o telefone"
+                                    onChange={(e) => {
+                                      // Pega apenas números
+                                      let valor = e.target.value.replace(/\D/g, '');
+
+                                      // Limita a 11 dígitos
+                                      if (valor.length > 11) valor = valor.slice(0, 11);
+
+                                      // Aplica máscara: (XX) XXXXX-XXXX
+                                      if (valor.length > 5) {
+                                        valor = `(${valor.slice(0, 2)}) ${valor.slice(2, 7)}-${valor.slice(7)}`;
+                                      } else if (valor.length > 2) {
+                                        valor = `(${valor.slice(0, 2)}) ${valor.slice(2)}`;
+                                      } else if (valor.length > 0) {
+                                        valor = `(${valor}`;
+                                      }
+
+                                      setTelefoneComprador(valor);
+                                    }}
+                                  />
                                 </div>
+
                                 <Button onClick={reservarNumero} className="w-full">
                                   Confirmar Reserva
                                 </Button>
@@ -315,23 +342,23 @@ const PainelAdmin = () => {
                           </Dialog>
                         )}
 
-                        {((numero.status === 'reservado') || 
+                        {((numero.status === 'reservado') ||
                           (numero.status === 'disponivel' && numero.nome_comprador && numero.telefone_comprador)) && (
-                          <>
-                            <Button size="sm" onClick={() => marcarComoPago(numero.numero)}>
-                              <Check className="h-4 w-4 mr-1" />
-                              Pago
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => liberarNumero(numero.numero)}
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Liberar
-                            </Button>
-                          </>
-                        )}
+                            <>
+                              <Button size="sm" onClick={() => marcarComoPago(numero.numero)}>
+                                <Check className="h-4 w-4 mr-1" />
+                                Pago
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => liberarNumero(numero.numero)}
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Liberar
+                              </Button>
+                            </>
+                          )}
                       </div>
                     </TableCell>
                   </TableRow>
